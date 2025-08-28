@@ -38,7 +38,9 @@ def run(species, param_file):
 def run_all(): 
     # Preprocessing scripts
     hitran2.main()
-    preprocess.main()
+    cmd = 'python preprocess.py'
+    res = subprocess.run(cmd.split(), cwd='wogan_data/'+sp)
+    assert res.returncode == 0
 
     # Run the code
     species = ['C2H2','C2H6','CH4','CO','CO2','H2O','HCl','N2O','NH3','O2','O3','OCS','SO2']
