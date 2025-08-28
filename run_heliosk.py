@@ -2,7 +2,8 @@ import subprocess
 from wogan_data.bins import T_grid
 import os
 import numpy as np
-import preprocess
+from wogan_data import preprocess
+import hitran2
 
 # For running heliosk multiple times for different T values
 
@@ -35,7 +36,11 @@ def run(species, param_file):
         assert res.returncode == 0
 
 def run_all(): 
+    # Preprocessing scripts
+    hitran2.main()
     preprocess.main()
+
+    # Run the code
     species = ['C2H2','C2H6','CH4','CO','CO2','H2O','HCl','N2O','NH3','O2','O3','OCS','SO2']
     for sp in species:
         param_file = "wogan_data/"+sp+"/param.dat_"+sp
