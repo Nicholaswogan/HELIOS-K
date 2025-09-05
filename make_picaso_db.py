@@ -60,7 +60,7 @@ def make_db(heliosk_dir, data_dir, min_wavelength, max_wavelength, new_R, old_R=
 
         # Get T grid
         _, _, T, _, _ = np.loadtxt('Out_'+molecule+'_bin0000.dat').T
-        
+        T = np.unique(T)
         if len(T) == len(T_GRID):
             if not np.allclose(T, T_GRID):
                 print('T does not match T_GRID:')
