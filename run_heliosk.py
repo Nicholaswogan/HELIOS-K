@@ -43,7 +43,7 @@ def run_all():
     assert res.returncode == 0
 
     # Run the code
-    species = ['C2H2','C2H6','CH4','CO','CO2','H2O','HCl','N2O','NH3','O2','O3','OCS','SO2']
+    species = ['CH4','CO','CO2','H2O','O2','O3']
     for sp in species:
         param_file = "wogan_data/"+sp+"/param.dat_"+sp
         run(sp, param_file)
