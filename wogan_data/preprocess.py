@@ -150,23 +150,25 @@ def preprocess_default(molecule, all_isotopes=True, cut=25.0, qalphaL=0.0, subLo
         removePlinth=removePlinth
     )
 
+ALL_ISOTOPES = True
+
 def preprocess_CH4():
-    preprocess_default('CH4')
+    preprocess_default('CH4', all_isotopes=ALL_ISOTOPES)
 
 def preprocess_CO():
-    preprocess_default('CO', qalphaL=1.0)
+    preprocess_default('CO', all_isotopes=ALL_ISOTOPES, qalphaL=1.0)
 
 def preprocess_CO2():
-    preprocess_default('CO2', cut=500.0, qalphaL=1.0, subLorentzianfile='chiPH89__CO2-CO2.dat')
+    preprocess_default('CO2', all_isotopes=ALL_ISOTOPES, cut=500.0, qalphaL=1.0, subLorentzianfile='chiPH89__CO2-CO2.dat')
 
 def preprocess_H2O():
-    preprocess_default('H2O', removePlinth=1)
+    preprocess_default('H2O', all_isotopes=ALL_ISOTOPES, removePlinth=1)
 
 def preprocess_O2():
-    preprocess_default('O2')
+    preprocess_default('O2', all_isotopes=ALL_ISOTOPES)
 
 def preprocess_O3():
-    preprocess_default('O3')
+    preprocess_default('O3', all_isotopes=ALL_ISOTOPES)
 
 def main():
 
