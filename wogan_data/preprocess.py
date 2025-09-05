@@ -34,7 +34,7 @@ def download_isotope_files(molecule, data_dir):
 
     return global_ids
 
-def hapi_download_and_process(molecule, numin=0.0, numax=1000000.0, data_folder='data/', data_name='hitrandata'):
+def hapi_download_and_process(molecule, numin=0.0, numax=1000000.0, data_folder='data/', data_name='hitrandata', all_isotopes=True):
 
     global_ids = download_isotope_files(molecule, data_folder)
     molecule_id = get_molecule_id(molecule)
@@ -48,9 +48,9 @@ def hapi_download_and_process(molecule, numin=0.0, numax=1000000.0, data_folder=
     filename = Species_name+'.par'
     os.rename(molecule+'.data', os.path.join(data_folder,filename))
 
-    run_hitran_preprocess(data_folder, data_name, molecule_id)
+    run_hitran_preprocess(data_folder, data_name, molecule_id, all_isotopes)
 
-def run_hitran_preprocess(data_folder, data_name, molecule_id):
+def run_hitran_preprocess(data_folder, data_name, molecule_id, all_isotopes=True):
     
     # copy files to the main directory
     tmp_files = []
@@ -60,7 +60,10 @@ def run_hitran_preprocess(data_folder, data_name, molecule_id):
             tmp_files.append(os.path.join(MAIN_DIR,a))
 
     # preprocess the files
-    cmd = "./hitran -M "+f'{molecule_id:02d}'+" -in "+data_name
+    if all_isotopes:
+        cmd = "./hitran -M "+f'{molecule_id:02d}'+" -in "+data_name
+    else:
+        cmd = "./hitran -M "+f'{molecule_id:02d}'+" -ISO 1 -in "+data_name
     subprocess.run(cmd.split(), cwd=MAIN_DIR)
 
     # move processesed data files into data dir
@@ -119,18 +122,22 @@ doTuning = 0
     with open(filename,'w') as f:
         f.write(param_file)
 
-def preprocess_default(molecule, cut=25.0, qalphaL=0.0, subLorentzianfile='-', removePlinth=0):
+def preprocess_default(molecule, all_isotopes=True, cut=25.0, qalphaL=0.0, subLorentzianfile='-', removePlinth=0):
 
     data_folder = molecule
     data_name = 'hitrandata'
     molecule_id = get_molecule_id(molecule)
-    Species_Name = f'{molecule_id:02d}_'+data_name
+    if all_isotopes:
+        Species_Name = f'{molecule_id:02d}_'+data_name
+    else:
+        Species_Name = f'{molecule_id:02d}_1_'+data_name
     hapi_download_and_process(
         molecule, 
         numin=0.0, 
         numax=1000000.0, 
         data_folder=data_folder, 
-        data_name=data_name
+        data_name=data_name,
+        all_isotopes=all_isotopes
     )
     write_param_file(
         filename=molecule+'/param.dat_'+molecule, 
