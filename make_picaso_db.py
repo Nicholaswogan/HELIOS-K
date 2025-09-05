@@ -18,7 +18,7 @@ def reshape_data_array(data_array, nP, nT, nwno):
     for i1 in range(nT):
         for i2 in range(nP):
             for i3 in range(nwno):
-                k[i1,i2,i3] = data_array[i3 + i2*nwno + i1*nP]
+                k[i1,i2,i3] = data_array[i3 + i2*nwno + i1*nP*nwno]
     return k
 
 def get_wavenumbers():
