@@ -14,6 +14,12 @@ WAVNUM = wogan_bins.wavnum
 
 @nb.njit()
 def reshape_data_array(data_array, nP, nT, nwno):
+
+    i1 = nT - 1
+    i2 = nP - 1
+    i3 = nwno - 1
+    assert i3 + i2*nwno + i1*nP*nwno == len(data_array) - 1
+
     k = np.empty((nT, nP, nwno),np.float32)
     for i1 in range(nT):
         for i2 in range(nP):
@@ -52,14 +58,21 @@ def make_db(heliosk_dir, data_dir, min_wavelength, max_wavelength, new_R, old_R=
         # Load the data
         data_array = np.fromfile(heliosk_dir+'/'+filenames[i], dtype=np.float32)
 
+        # Get T grid
+        _, _, T, _, _ = np.loadtxt('Out_'+molecule+'_bin0000.dat').T
+        T = np.unique(T)
+        if not np.allclose(T, T_GRID):
+            print('T does not match T_GRID:')
+            print(T)
+
         # reshape the data
-        k = reshape_data_array(data_array, len(P_GRID), len(T_GRID), len(wno))
+        k = reshape_data_array(data_array, len(P_GRID), len(T), len(wno))
 
         # Put molecule into database
         new_wvno_grid = insert_molecule(
             db, molecule, data_dir,
             min_wavelength, max_wavelength, new_R, 
-            old_R, wno, T_GRID, P_GRID, k
+            old_R, wno, T, P_GRID, k
         )
 
     # continuum
