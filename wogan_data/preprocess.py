@@ -457,16 +457,16 @@ def preprocess_SO2():
 
 def main():
 
-    # # clean
-    # species = ['C2H2','C2H6','CH4','CO','CO2','H2O','HCl','N2O','NH3','O2','O3','OCS','SO2']
-    # for sp in species:
-    #     for a in os.listdir(sp):
-    #         aa = os.path.join(sp,a)
-    #         if a != '.gitignore' and 'param.dat' not in a:
-    #             if os.path.isdir(aa):
-    #                 shutil.rmtree(aa)
-    #             else:
-    #                 os.remove(aa)
+    # clean
+    species = ['C2H2','C2H6','CH4','CO','CO2','H2O','HCl','N2O','NH3','O2','O3','OCS','SO2']
+    for sp in species:
+        for a in os.listdir(sp):
+            aa = os.path.join(sp,a)
+            if a != '.gitignore' and 'param.dat' not in a:
+                if os.path.isdir(aa):
+                    shutil.rmtree(aa)
+                else:
+                    os.remove(aa)
              
     preprocess_C2H2()
     preprocess_C2H6()
