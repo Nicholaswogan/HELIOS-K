@@ -629,9 +629,9 @@ __host__ int readFile(Param param, Molecule &m, Partition &part, Line &L, double
 			if(strcmp(cid, m.ISO[j].cid) == 0){
 
 				mass = m.ISO[j].m / def_NA;
-				Abundance = m.ISO[j].Ab;
+				//Abundance = m.ISO[j].Ab;
 				if(param.units == 0){
-					Abundance *= m.ISO[j].m / meanMass;
+					//Abundance *= m.ISO[j].m / meanMass;
 					Sscale1 *= m.ISO[j].m / meanMass;
 				}
 				Q = part.Q[j];

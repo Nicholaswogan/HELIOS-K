@@ -28,6 +28,7 @@ int main(int argc, char *argv[]){
 	sprintf(inname, "%s", "");
 
 	//Read console input arguments
+	double natural_abundance_for_single_iso = -1.0;
 	for(int i = 1; i < argc; i += 2){
 		if(strcmp(argv[i], "-M") == 0){
 			M = atoi(argv[i + 1]);
@@ -124,6 +125,7 @@ int main(int argc, char *argv[]){
 		else{
 			if(molecule == M && (strcmp(iiso, iso) == 0)){
 				printf("ISO1 %d %s %g %g %g %s %g\n", molecule, index[nISO], abundance[nISO], m[nISO], Q0[nISO], qfile[nISO], g[nISO]);
+				natural_abundance_for_single_iso = abundance[nISO];
 				abundance[nISO] = 1.0;
 				++nISO;
 			}
@@ -394,6 +396,9 @@ int main(int argc, char *argv[]){
 						printf("Error in assigning isotopologue properties\n");
 					}
 
+					if (natural_abundance_for_single_iso > 0.0) {
+						S /= natural_abundance_for_single_iso;
+					}
 					S /= mass;
 					S = S * q0;
 
