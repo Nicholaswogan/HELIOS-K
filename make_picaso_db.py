@@ -6,6 +6,9 @@ import h5py
 import pandas as pd
 from scipy import interpolate
 import numba as nb
+import shutil
+import requests
+import zipfile
 from wogan_data import bins as wogan_bins
 
 T_GRID = wogan_bins.T_grid
@@ -458,12 +461,27 @@ def restructure_opacity(new_db,ntemp,temperatures,molecules,og_opacity,old_wno,n
     conn.commit()
     conn.close()
 
+def download_photochem_data():
+    github_username = 'Nicholaswogan'
+    reponame = 'photochem_clima_data'
+    commit = '741d4320bf93a069a6df1d4725615dd8fb02a7da'
+
+    if os.path.isdir(reponame):
+        shutil.rmtree(reponame)
+    url = f'https://github.com/{github_username}/photochem_clima_data/archive/{commit}.zip'
+    r = requests.get(url)
+    z = zipfile.ZipFile(io.BytesIO(r.content))
+    z.extractall("./")
+    os.rename(f'{reponame}-{commit}',f'{reponame}')
+    
 if __name__ == '__main__':
+
+    download_photochem_data()
 
     # For HWO, and JWST investigations of rocky planets.
     make_db(
         heliosk_dir='./', 
-        data_dir='/home/nwogan/photochem_clima_data/photochem_clima_data/data', 
+        data_dir='photochem_clima_data/photochem_clima_data/data', 
         min_wavelength=0.1, 
         max_wavelength=5.5, 
         new_R=15_000, 
@@ -471,7 +489,7 @@ if __name__ == '__main__':
     )
     make_db(
         heliosk_dir='./', 
-        data_dir='/home/nwogan/photochem_clima_data/photochem_clima_data/data', 
+        data_dir='photochem_clima_data/photochem_clima_data/data', 
         min_wavelength=0.1, 
         max_wavelength=5.5, 
         new_R=60_000, 
@@ -481,7 +499,7 @@ if __name__ == '__main__':
     # For JWST MIRI investigations
     make_db(
         heliosk_dir='./', 
-        data_dir='/home/nwogan/photochem_clima_data/photochem_clima_data/data', 
+        data_dir='photochem_clima_data/photochem_clima_data/data', 
         min_wavelength=4.0, 
         max_wavelength=25.0, 
         new_R=10_000, 
