@@ -142,7 +142,7 @@ def main():
 
     # Make folder if needed
     if not os.path.isdir(output_folder):
-        os.mkdir('output_folder')
+        os.mkdir(output_folder)
 
     # Make bins file
     sol_wavl = wogan_bins.wavl[:-2].copy()
