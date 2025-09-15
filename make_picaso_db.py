@@ -39,7 +39,7 @@ def get_wavenumbers():
 
 def make_db(heliosk_dir, data_dir, min_wavelength, max_wavelength, new_R, old_R=1e6):
 
-    db = f'opacities_{min_wavelength}_{max_wavelength}_R{new_R}.db'
+    db = f'opacities_photochem_{min_wavelength}_{max_wavelength}_R{new_R}.db'
 
     if os.path.exists(db):
         os.remove(db)
