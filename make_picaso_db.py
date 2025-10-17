@@ -478,30 +478,21 @@ if __name__ == '__main__':
 
     download_photochem_data()
 
-    # For HWO, and JWST investigations of rocky planets.
+    # All wavelengths, low resolution.
     make_db(
         heliosk_dir='./', 
         data_dir='photochem_clima_data/photochem_clima_data/data', 
         min_wavelength=0.1, 
-        max_wavelength=5.5, 
+        max_wavelength=250.0, 
         new_R=15_000, 
         old_R=1e6
     )
+    # UV - NIR, high resolution
     make_db(
         heliosk_dir='./', 
         data_dir='photochem_clima_data/photochem_clima_data/data', 
         min_wavelength=0.1, 
         max_wavelength=5.5, 
         new_R=60_000, 
-        old_R=1e6
-    )
-
-    # For JWST MIRI investigations
-    make_db(
-        heliosk_dir='./', 
-        data_dir='photochem_clima_data/photochem_clima_data/data', 
-        min_wavelength=4.0, 
-        max_wavelength=25.0, 
-        new_R=10_000, 
         old_R=1e6
     )
