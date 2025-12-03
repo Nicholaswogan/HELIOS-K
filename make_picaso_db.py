@@ -105,7 +105,7 @@ def resave_as_h5_files(heliosk_dir, data_dir, outdir):
             d_T.attrs['units'] = 'K'
             d_T.attrs['description'] = 'Temperature grid in Kelvin'
 
-            d_P = h5f.create_dataset('P_GRID', data=np.asarray(P_GRID, dtype=np.float32), compression='gzip')
+            d_P = h5f.create_dataset('P', data=np.asarray(P_GRID, dtype=np.float32), compression='gzip')
             d_P.attrs['units'] = 'bar'
             d_P.attrs['description'] = 'Pressure grid in bar'
 
@@ -113,7 +113,7 @@ def resave_as_h5_files(heliosk_dir, data_dir, outdir):
             d_k.attrs['units'] = 'cm^2/molecule'
             d_k.attrs['description'] = (
                 'Opacity array indexed as k[t_index, p_index, wno_index], '
-                'where t_index spans T (K), p_index spans P_GRID (bar), and '
+                'where t_index spans T (K), p_index spans P (bar), and '
                 'wno_index spans wno (cm^-1).'
             )
 
@@ -142,7 +142,7 @@ def resave_as_h5_files(heliosk_dir, data_dir, outdir):
     readme.append('')
     readme.append('## Line opacities')
     readme.append('- `wavenumber_grid.h5`: `wno` dataset (cm^-1) for the common grid')
-    readme.append('- `<molecule>.h5`: contains `T` (K), `P_GRID` (bar), and `k` (cm^2/molecule) indexed as k[t_index, p_index, wno_index]')
+    readme.append('- `<molecule>.h5`: contains `T` (K), `P` (bar), and `k` (cm^2/molecule) indexed as k[t_index, p_index, wno_index]')
     readme.append('')
     readme.append('## Collision induced absorption (continuum.txt)')
     readme.append('- Column order: %s' % ', '.join(col_names))
