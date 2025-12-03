@@ -37,6 +37,117 @@ def get_wavenumbers():
         wno = np.append(wno, np.linspace(wavnums[i],wavnums[i+1],100_001)[:-1])
     return wno
 
+def resave_as_h5_files(heliosk_dir, data_dir, outdir):
+
+    if not os.path.isdir(outdir):
+        os.mkdir(outdir)
+
+    # Get the filenames
+    tmp = os.listdir(heliosk_dir)
+    filenames = [a for a in tmp if 'Out_' in a and '.bin' in a]
+    molecules = [a.replace('Out_','').replace('.bin','') for a in filenames]
+
+    # Wavenumber grid
+    wno = get_wavenumbers()
+
+    # save
+    filename = os.path.join(outdir,'wavenumber_grid.h5')
+    with h5py.File(filename, 'w') as h5f:
+        d_wno = h5f.create_dataset('wno', data=np.asarray(wno, dtype=np.float32), compression='gzip')
+        d_wno.attrs['units'] = 'cm^-1'
+        d_wno.attrs['description'] = 'Wavenumber grid in inverse centimeters'
+
+    # Insert line opacities
+    for i,molecule in enumerate(molecules):
+        print('Working on '+molecule)
+
+        # Load the data
+        data_array = np.fromfile(heliosk_dir+'/'+filenames[i], dtype=np.float32)
+
+        # Get T grid
+        _, _, T, _, _ = np.loadtxt('Out_'+molecule+'_bin0000.dat').T
+        T = np.unique(T)
+        if len(T) == len(T_GRID):
+            if not np.allclose(T, T_GRID):
+                print('T does not match T_GRID:')
+                print(T)
+        else:
+            print('T does not match T_GRID:')
+            print(T)
+
+        # reshape the data
+        k = reshape_data_array(data_array, len(P_GRID), len(T), len(wno))
+
+        # Add in photolysis cross sections
+        filename = data_dir+'/xsections/'+molecule+'.h5'
+        if os.path.exists(filename):
+            with h5py.File(filename,'r') as f:
+                k_uv = f['photoabsorption'][:].astype(np.float64)[::-1]
+                wno_uv = 1e4/(f['wavelengths'][:].astype(np.float64)[::-1]/1e3)
+
+            # Interpolate to grid.
+            k_uv = np.interp(wno, wno_uv, k_uv, left=1e-200,right=1e-200)
+            k_uv = np.asarray(k_uv, dtype=np.float32)
+
+            # Add UV opacity to every T,P slice in one broadcasted op
+            k += k_uv[np.newaxis, np.newaxis, :]
+
+        # Save raw grids and opacities for this molecule to an HDF5 file
+        h5_filename = os.path.join(outdir, f'{molecule}.h5')
+        with h5py.File(h5_filename, 'w') as h5f:
+
+            d_T = h5f.create_dataset('T', data=np.asarray(T, dtype=np.float32), compression='gzip')
+            d_T.attrs['units'] = 'K'
+            d_T.attrs['description'] = 'Temperature grid in Kelvin'
+
+            d_P = h5f.create_dataset('P_GRID', data=np.asarray(P_GRID, dtype=np.float32), compression='gzip')
+            d_P.attrs['units'] = 'bar'
+            d_P.attrs['description'] = 'Pressure grid in bar'
+
+            d_k = h5f.create_dataset('k', data=np.asarray(k, dtype=np.float32), compression='gzip')
+            d_k.attrs['units'] = 'cm^2/molecule'
+            d_k.attrs['description'] = (
+                'Opacity array indexed as k[t_index, p_index, wno_index], '
+                'where t_index spans T (K), p_index spans P_GRID (bar), and '
+                'wno_index spans wno (cm^-1).'
+            )
+
+    col_names = write_CIA_file(data_dir, os.path.join(outdir,'continuum.txt'))
+
+    description1 = 'These opacities were computed using the HELIOS-K opacity calculator intended primarily for '
+    +'climate simulations with the Photochem model, but they can also be used to compute planetary spectra of '
+    +'rocky planets that are relatively cool (T < 2000 K). Most of the opacities are HITEMP, while some are '
+    +'HITRAN. For details, and to reproduce these opacities, check out the repository '
+    +'https://github.com/Nicholaswogan/HELIOS-K/ at commit 9ecf36823fab304313c79300c2ca1712876c93e7. '
+    +'See the README.md in that repository for instructions, and look at the file "wogan_data/preprocess.py" '
+    +'for the settings/origin for each opacity. The Line opacities include UV cross sections from '
+    +'https://github.com/Nicholaswogan/photochem_clima_data commit 741d4320bf93a069a6df1d4725615dd8fb02a7da.'
+
+    description2 = 'This folder also archives collision induced absorption opacities (continuum.txt) from '
+    +'`photochem_clima_data` at the same commit.'
+
+    # Write brief README for the continuum output
+    readme_path = os.path.join(outdir, 'README.md')
+    readme = []
+    readme.append('# Opacities from and for Photochem')
+    readme.append('')
+    readme.append(description1)
+    readme.append('')
+    readme.append(description2)
+    readme.append('')
+    readme.append('## Line opacities')
+    readme.append('- `wavenumber_grid.h5`: `wno` dataset (cm^-1) for the common grid')
+    readme.append('- `<molecule>.h5`: contains `T` (K), `P_GRID` (bar), and `k` (cm^2/molecule) indexed as k[t_index, p_index, wno_index]')
+    readme.append('')
+    readme.append('## Collision induced absorption (continuum.txt)')
+    readme.append('- Column order: %s' % ', '.join(col_names))
+    readme.append('- First line: `n_wavenumbers n_temperatures`')
+    readme.append('- Second line: first temperature value')
+    readme.append('- Remaining lines: rows of wavenumber (cm^-1) followed by CIA opacities for each column name above')
+    readme.append('- Units: wavenumber in cm^-1; CIA opacities are log10(cm^-1 amagat^-2)')
+    with open(readme_path, 'w') as f:
+        f.write('\n'.join(readme))
+
 def make_db(heliosk_dir, data_dir, min_wavelength, max_wavelength, new_R, old_R=1e6):
 
     db = f'opacities_photochem_{min_wavelength}_{max_wavelength}_R{new_R}.db'
@@ -495,4 +606,10 @@ if __name__ == '__main__':
         max_wavelength=5.5, 
         new_R=60_000, 
         old_R=1e6
+    )
+
+    resave_as_h5_files(
+        heliosk_dir='./', 
+        data_dir='photochem_clima_data/photochem_clima_data/data', 
+        outdir='photochem_opacities'
     )
