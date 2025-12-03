@@ -40,7 +40,7 @@ def get_wavenumbers():
         wno = np.append(wno, np.linspace(wavnums[i],wavnums[i+1],100_001)[:-1])
     return wno
 
-def resave_as_h5_files(heliosk_dir, data_dir, outdir):
+def resave_as_h5_files(heliosk_dir, outdir):
 
     if not os.path.isdir(outdir):
         os.mkdir(outdir)
@@ -81,20 +81,6 @@ def resave_as_h5_files(heliosk_dir, data_dir, outdir):
         # reshape the data
         k = reshape_data_array(data_array, len(P_GRID), len(T), len(wno))
 
-        # Add in photolysis cross sections
-        filename = data_dir+'/xsections/'+molecule+'.h5'
-        if os.path.exists(filename):
-            with h5py.File(filename,'r') as f:
-                k_uv = f['photoabsorption'][:].astype(np.float64)[::-1]
-                wno_uv = 1e4/(f['wavelengths'][:].astype(np.float64)[::-1]/1e3)
-
-            # Interpolate to grid.
-            k_uv = np.interp(wno, wno_uv, k_uv, left=1e-200,right=1e-200)
-            k_uv = np.asarray(k_uv, dtype=np.float32)
-
-            # Add UV opacity to every T,P slice in one broadcasted op
-            k += k_uv[np.newaxis, np.newaxis, :]
-
         # Save raw grids and opacities for this molecule to an HDF5 file
         h5_filename = os.path.join(outdir, f'{molecule}.h5')
         with h5py.File(h5_filename, 'w') as h5f:
@@ -117,39 +103,55 @@ def resave_as_h5_files(heliosk_dir, data_dir, outdir):
                 'wno_index spans wno (cm^-1).'
             )
 
-    col_names = write_CIA_file(data_dir, os.path.join(outdir,'continuum.txt'))
+def h5_files_readme(outdir):
 
-    description1 = 'These opacities were computed using the HELIOS-K opacity calculator intended primarily for '
-    +'climate simulations with the Photochem model, but they can also be used to compute planetary spectra of '
-    +'rocky planets that are relatively cool (T < 2000 K). Most of the opacities are HITEMP, while some are '
-    +'HITRAN. For details, and to reproduce these opacities, check out the repository '
-    +'https://github.com/Nicholaswogan/HELIOS-K/ at commit 9ecf36823fab304313c79300c2ca1712876c93e7. '
-    +'See the README.md in that repository for instructions, and look at the file "wogan_data/preprocess.py" '
-    +'for the settings/origin for each opacity. The Line opacities include UV cross sections from '
-    +'https://github.com/Nicholaswogan/photochem_clima_data commit 741d4320bf93a069a6df1d4725615dd8fb02a7da.'
+    if not os.path.isdir(outdir):
+        os.mkdir(outdir)
 
-    description2 = 'This folder also archives collision induced absorption opacities (continuum.txt) from '
-    +'`photochem_clima_data` at the same commit.'
+    description = 'These opacities were computed using the HELIOS-K opacity calculator intended primarily for ' \
+    +'climate simulations with the Photochem model, but they can also be used to compute planetary spectra of ' \
+    +'rocky planets that are relatively cool (T < 2000 K). Most of the opacities are HITEMP, while some are ' \
+    +'HITRAN. For details, and to reproduce these opacities, check out the repository ' \
+    +'https://github.com/Nicholaswogan/HELIOS-K/ at commit 9ecf36823fab304313c79300c2ca1712876c93e7. ' \
+    +'See the README.md in that repository for instructions, and look at the file "wogan_data/preprocess.py" ' \
+    +'for the precise settings/origin for each opacity. The table below gives a brief overview of the settings.'
+
+    table = r"""| Species         | Source                                             | Line shape              | Cutoff        | Broadening      |
+| --------------- | -------------------------------------------------- | ----------------------- | ------------- | --------------- |
+| H$_2$O (note b) | HITEMP2010, HITRAN2016 (Rothman 2010; Gordon 2017) | Voigt                   | 25 cm$^{-1}$  | Earth air       |
+| CO$_2$          | HITEMP2010 (Rothman 2010)                          | Sub-Lorentzian (note c) | 500 cm$^{-1}$ | Self-broadening |
+| CH$_4$          | HITEMP2020 (Hargreaves 2020)                       | Voigt                   | 25 cm$^{-1}$  | Earth air       |
+| CO              | HITEMP2019 (Li 2015)                               | Voigt                   | 25 cm$^{-1}$  | Self-broadening |
+| O$_2$           | HITRAN2016 (Gordon 2017)                           | Voigt                   | 25 cm$^{-1}$  | Earth air       |
+| O$_3$           | HITRAN2016 (Gordon 2017)                           | Voigt                   | 25 cm$^{-1}$  | Earth air       |
+| NH$_3$          | HITRAN2016 (Gordon 2017)                           | Voigt                   | 25 cm$^{-1}$  | Earth air       |
+| SO$_2$          | HITRAN2016 (Gordon 2017)                           | Voigt                   | 25 cm$^{-1}$  | Earth air       |
+| C$_2$H$_2$      | Downloaded w/ HAPI (note d) on 4/23/25             | Voigt                   | 25 cm$^{-1}$  | Earth air       |
+| C$_2$H$_6$      | Downloaded w/ HAPI (note d) on 4/23/25             | Voigt                   | 25 cm$^{-1}$  | Earth air       |
+| HCl             | Downloaded w/ HAPI (note d) on 4/23/25             | Voigt                   | 25 cm$^{-1}$  | Earth air       |
+| N$_2$O          | HITEMP2019 (Hargreaves 2019)                       | Voigt                   | 25 cm$^{-1}$  | Earth air       |
+| OCS             | Downloaded w/ HAPI (note d) on 4/23/25             | Voigt                   | 25 cm$^{-1}$  | Earth air       |
+
+Notes:
+- a) All k-distributions were computed with HELIOS-K (Grimm 2021) for temperatures between 100 and 2000 K, and pressures from 10^3 to 10^-5 bar.
+- b) Plinth or base is removed because this opacity should be combined with MT\_CKD H$_2$O continuum.
+- c) Perrin (1989) chi factors.
+- d) HITRAN Application Programming Interface (Kochanov 2016).
+"""
 
     # Write brief README for the continuum output
     readme_path = os.path.join(outdir, 'README.md')
     readme = []
     readme.append('# Opacities from and for Photochem')
     readme.append('')
-    readme.append(description1)
+    readme.append(description)
     readme.append('')
-    readme.append(description2)
-    readme.append('')
-    readme.append('## Line opacities')
+    readme.append('## Files')
     readme.append('- `wavenumber_grid.h5`: `wno` dataset (cm^-1) for the common grid')
     readme.append('- `<molecule>.h5`: contains `T` (K), `P` (bar), and `k` (cm^2/molecule) indexed as k[t_index, p_index, wno_index]')
     readme.append('')
-    readme.append('## Collision induced absorption (continuum.txt)')
-    readme.append('- Column order: %s' % ', '.join(col_names))
-    readme.append('- First line: `n_wavenumbers n_temperatures`')
-    readme.append('- Second line: first temperature value')
-    readme.append('- Remaining lines: rows of wavenumber (cm^-1) followed by CIA opacities for each column name above')
-    readme.append('- Units: wavenumber in cm^-1; CIA opacities are log10(cm^-1 amagat^-2)')
+    readme.append('## Line opacity settings')
+    readme.append(table)
     with open(readme_path, 'w') as f:
         f.write('\n'.join(readme))
 
@@ -615,6 +617,8 @@ if __name__ == '__main__':
 
     resave_as_h5_files(
         heliosk_dir='./', 
-        data_dir='photochem_clima_data/photochem_clima_data/data', 
+        outdir='photochem_opacities'
+    )
+    h5_files_readme(
         outdir='photochem_opacities'
     )
