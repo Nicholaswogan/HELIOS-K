@@ -11,6 +11,9 @@ import requests
 import zipfile
 from wogan_data import bins as wogan_bins
 
+from threadpoolctl import threadpool_limits
+_ = threadpool_limits(limits=1)
+
 T_GRID = wogan_bins.T_grid
 P_GRID = wogan_bins.P_grid
 WAVNUM = wogan_bins.wavnum
@@ -95,6 +98,8 @@ def resave_as_h5_files(heliosk_dir, data_dir, outdir):
         # Save raw grids and opacities for this molecule to an HDF5 file
         h5_filename = os.path.join(outdir, f'{molecule}.h5')
         with h5py.File(h5_filename, 'w') as h5f:
+
+            h5f.attrs['molecule'] = molecule
 
             d_T = h5f.create_dataset('T', data=np.asarray(T, dtype=np.float32), compression='gzip')
             d_T.attrs['units'] = 'K'
